@@ -4,21 +4,31 @@
 
 ```bash
 # 1. Клонируйте репозиторий
-git clone <repository-url>
-cd Bot_kwork
+git clone https://github.com/SpiritWalker84/sysadmin_repo.git
+cd sysadmin_repo
 
-# 2. Установите зависимости
-pip3 install -r requirements.txt
+# 2. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+)
+python3 -m venv venv
+source venv/bin/activate
 
-# 3. Установите браузеры Playwright
-python3 -m playwright install chromium
+# 3. Установите зависимости
+pip install -r requirements.txt
 
-# 4. Создайте .env файл
+# 4. Установите браузеры Playwright
+python -m playwright install chromium
+
+# 5. Создайте .env файл
 cp .env.example .env
 nano .env  # Укажите BOT_TOKEN
 
-# 5. Запустите бота
-python3 bot.py
+# 6. Запустите бота
+# Вариант 1: Используя скрипт (автоматически создаст и активирует venv)
+chmod +x start.sh
+./start.sh
+
+# Вариант 2: Напрямую (убедитесь, что venv активирован)
+source venv/bin/activate
+python bot.py
 ```
 
 ## Windows

@@ -12,34 +12,41 @@ git clone https://github.com/SpiritWalker84/sysadmin_repo.git
 cd sysadmin_repo
 ```
 
-2. Установите зависимости:
+2. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+):
 ```bash
-pip3 install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-3. Установите браузеры для Playwright:
+3. Установите зависимости:
 ```bash
-python3 -m playwright install chromium
+pip install -r requirements.txt
 ```
 
-4. Создайте файл `.env` из примера:
+4. Установите браузеры для Playwright:
+```bash
+python -m playwright install chromium
+```
+
+5. Создайте файл `.env` из примера:
 ```bash
 cp .env.example .env
 ```
 
-5. Отредактируйте `.env` и укажите ваш токен бота:
+6. Отредактируйте `.env` и укажите ваш токен бота:
 ```bash
 nano .env  # или используйте любой текстовый редактор
 ```
 
-6. Запустите бота:
+7. Запустите бота:
 ```bash
-# Вариант 1: Используя скрипт
+# Вариант 1: Используя скрипт (автоматически активирует venv)
 chmod +x start.sh
 ./start.sh
 
-# Вариант 2: Напрямую
-python3 bot.py
+# Вариант 2: Напрямую (убедитесь, что venv активирован)
+source venv/bin/activate
+python bot.py
 ```
 
 ### Для Windows
@@ -98,14 +105,16 @@ python bot.py
 Для запуска в фоне на сервере используйте `screen` или `tmux`:
 
 ```bash
-# С screen
+# С screen (убедитесь, что venv активирован)
 screen -S kwork_bot
-python3 bot.py
+source venv/bin/activate
+python bot.py
 # Нажмите Ctrl+A, затем D для отсоединения
 
-# С tmux
+# С tmux (убедитесь, что venv активирован)
 tmux new -s kwork_bot
-python3 bot.py
+source venv/bin/activate
+python bot.py
 # Нажмите Ctrl+B, затем D для отсоединения
 ```
 
@@ -157,8 +166,8 @@ After=network.target
 [Service]
 Type=simple
 User=your_username
-WorkingDirectory=/path/to/Bot_kwork
-ExecStart=/usr/bin/python3 /path/to/Bot_kwork/bot.py
+WorkingDirectory=/path/to/sysadmin_repo
+ExecStart=/path/to/sysadmin_repo/venv/bin/python /path/to/sysadmin_repo/bot.py
 Restart=always
 RestartSec=10
 
