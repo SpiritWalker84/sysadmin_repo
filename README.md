@@ -29,7 +29,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Установите браузеры для Playwright:
+4. Установите системные зависимости для Playwright (для Ubuntu):
+```bash
+sudo apt install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 libatk-1.0-0 libcairo2 libgdk-pixbuf2.0-0 libgtk-3-0
+```
+
+5. Установите браузеры для Playwright:
 ```bash
 python -m playwright install chromium
 ```

@@ -29,7 +29,9 @@ async def fetch_projects_page() -> Optional[str]:
         str: HTML содержимое страницы после выполнения JavaScript или None в случае ошибки
     """
     try:
+        print("Инициализация Playwright...")
         async with async_playwright() as p:
+            print("Запуск браузера Chromium...")
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             
@@ -39,14 +41,18 @@ async def fetch_projects_page() -> Optional[str]:
             })
             
             # Переходим на страницу и ждём загрузки контента
+            print(f"Загрузка страницы: {KWORK_URL}")
             await page.goto(KWORK_URL, wait_until="networkidle", timeout=30000)
             
             # Ждём немного, чтобы JavaScript успел загрузить проекты
+            print("Ожидание загрузки JavaScript...")
             await page.wait_for_timeout(3000)
             
             # Получаем HTML после выполнения JavaScript
+            print("Получение HTML содержимого...")
             html = await page.content()
             await browser.close()
+            print("Браузер закрыт")
             
             print(f"Страница загружена через Playwright, размер HTML: {len(html)} символов")
             if '/projects/' in html.lower():

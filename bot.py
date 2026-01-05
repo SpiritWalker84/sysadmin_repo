@@ -291,14 +291,30 @@ async def main() -> None:
     print(f"Интервал опроса: {POLL_INTERVAL} секунд")
     print(f"Ключевые слова: {', '.join(KEYWORDS) if KEYWORDS else 'не указаны'}")
     
+    # Проверяем подключение к Telegram API
+    print("Проверка подключения к Telegram API...")
+    try:
+        bot_info = await bot.get_me()
+        print(f"✓ Бот подключен: @{bot_info.username}")
+    except Exception as e:
+        print(f"✗ Ошибка подключения к Telegram API: {e}")
+        print("Проверьте BOT_TOKEN в файле .env")
+        return
+    
     # Запускаем фоновую задачу, если есть сохранённый chat_id
     global background_task_running
-    if load_chat_id():
+    saved_chat_id = load_chat_id()
+    if saved_chat_id:
+        print(f"Найден сохранённый chat_id: {saved_chat_id}")
         background_task_running = True
         asyncio.create_task(background_task())
         print("Фоновая задача запущена")
+    else:
+        print("Chat ID не сохранён. Отправьте /start боту в Telegram для начала работы.")
     
     # Запускаем бота
+    print("Ожидание команд от пользователя...")
+    print("Отправьте /start боту в Telegram для начала работы.")
     try:
         await dp.start_polling(bot)
     except KeyboardInterrupt:
