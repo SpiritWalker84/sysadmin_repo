@@ -210,25 +210,44 @@ async def send_daily_stats() -> None:
             # Ждём до полуночи
             await asyncio.sleep(wait_seconds)
             
-            # Загружаем статистику за вчерашний день
+            # Загружаем статистику за предыдущий день (до сброса)
+            # load_daily_stats вернёт статистику за вчера, так как дата уже изменилась
             stats = load_daily_stats()
             chat_id = load_chat_id()
             
-            if chat_id and stats.get('found_count', 0) > 0:
+            # Если статистика пустая, возможно это первый запуск, попробуем загрузить напрямую
+            if stats.get('found_count', 0) == 0:
+                try:
+                    import json
+                    import os
+                    stats_file = "daily_stats.json"
+                    if os.path.exists(stats_file):
+                        with open(stats_file, 'r', encoding='utf-8') as f:
+                            old_stats = json.load(f)
+                            # Используем старую статистику, если она есть
+                            if old_stats.get('found_count', 0) > 0:
+                                stats = old_stats
+                except:
+                    pass
+            
+            if chat_id:
                 found_count = stats.get('found_count', 0)
                 sent_count = stats.get('sent_count', 0)
                 
-                stats_message = (
-                    f"📊 <b>Статистика за день</b>\n\n"
-                    f"Найдено подходящих заданий: <b>{found_count}</b>\n"
-                    f"Отправлено новых заданий: <b>{sent_count}</b>"
-                )
-                
-                try:
-                    await bot.send_message(chat_id=chat_id, text=stats_message)
-                    print(f"Статистика за день отправлена: найдено {found_count}, отправлено {sent_count}")
-                except Exception as e:
-                    print(f"Ошибка при отправке статистики: {e}")
+                if found_count > 0:
+                    stats_message = (
+                        f"📊 <b>Статистика за день</b>\n\n"
+                        f"Найдено подходящих заданий: <b>{found_count}</b>\n"
+                        f"Отправлено новых заданий: <b>{sent_count}</b>"
+                    )
+                    
+                    try:
+                        await bot.send_message(chat_id=chat_id, text=stats_message)
+                        print(f"Статистика за день отправлена: найдено {found_count}, отправлено {sent_count}")
+                    except Exception as e:
+                        print(f"Ошибка при отправке статистики: {e}")
+                else:
+                    print("Статистика за день: заданий не найдено")
             
             # Сбрасываем статистику для нового дня
             today = datetime.date.today().isoformat()
@@ -236,6 +255,8 @@ async def send_daily_stats() -> None:
             
         except Exception as e:
             print(f"Ошибка в задаче отправки статистики: {e}")
+            import traceback
+            traceback.print_exc()
             await asyncio.sleep(3600)  # При ошибке ждём час
 
 
