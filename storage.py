@@ -111,8 +111,14 @@ def load_daily_stats() -> dict:
             data = json.load(f)
             # Проверяем, что это статистика за сегодня
             today = datetime.date.today().isoformat()
-            if data.get('date') != today:
-                # Новый день - сбрасываем статистику
+            file_date = data.get('date', '')
+            if file_date != today:
+                # Новый день - возвращаем старую статистику (для отправки в 00:00)
+                # но только если это вчерашний день
+                yesterday = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+                if file_date == yesterday:
+                    return data  # Возвращаем вчерашнюю статистику
+                # Иначе сбрасываем
                 return {'date': today, 'found_count': 0, 'sent_count': 0}
             return data
     except (json.JSONDecodeError, IOError) as e:
