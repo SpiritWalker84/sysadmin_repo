@@ -1,0 +1,11 @@
+# Устанавливаем правильную обработку файлов
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+
+# Бинарные файлы
+*.so binary
+*.pyc binary
+
