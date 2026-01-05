@@ -166,23 +166,34 @@ async def check_new_projects(chat_id: int) -> None:
             
             # Отправляем каждое новое задание
             for project in new_projects:
-                try:
-                    message = format_project_message(project)
-                    await bot.send_message(chat_id=chat_id, text=message)
-                    
-                    # Обновляем статистику отправленных
-                    increment_sent_count()
-                    
-                    # Добавляем ID в множество обработанных
+                max_send_retries = 3
+                sent = False
+                
+                for retry in range(max_send_retries):
+                    try:
+                        message = format_project_message(project)
+                        await bot.send_message(chat_id=chat_id, text=message)
+                        
+                        # Обновляем статистику отправленных
+                        increment_sent_count()
+                        sent = True
+                        break  # Успешно отправлено
+                        
+                    except Exception as e:
+                        if retry < max_send_retries - 1:
+                            print(f"Ошибка при отправке сообщения (попытка {retry + 1}/{max_send_retries}): {e}")
+                            await asyncio.sleep(2)  # Короткая задержка перед повтором
+                        else:
+                            print(f"Ошибка при отправке сообщения после {max_send_retries} попыток: {e}")
+                
+                # Добавляем ID в множество обработанных только если сообщение было отправлено
+                if sent:
                     project_id = project.get("id")
                     if project_id:
                         seen_ids.add(project_id)
                     
                     # Небольшая задержка между сообщениями
                     await asyncio.sleep(1)
-                    
-                except Exception as e:
-                    print(f"Ошибка при отправке сообщения: {e}")
             
             # Сохраняем обновлённый список seen_ids
             save_seen_ids(seen_ids)
@@ -241,11 +252,18 @@ async def send_daily_stats() -> None:
                         f"Отправлено новых заданий: <b>{sent_count}</b>"
                     )
                     
-                    try:
-                        await bot.send_message(chat_id=chat_id, text=stats_message)
-                        print(f"Статистика за день отправлена: найдено {found_count}, отправлено {sent_count}")
-                    except Exception as e:
-                        print(f"Ошибка при отправке статистики: {e}")
+                    max_stats_retries = 3
+                    for retry in range(max_stats_retries):
+                        try:
+                            await bot.send_message(chat_id=chat_id, text=stats_message)
+                            print(f"Статистика за день отправлена: найдено {found_count}, отправлено {sent_count}")
+                            break
+                        except Exception as e:
+                            if retry < max_stats_retries - 1:
+                                print(f"Ошибка при отправке статистики (попытка {retry + 1}/{max_stats_retries}): {e}")
+                                await asyncio.sleep(5)
+                            else:
+                                print(f"Ошибка при отправке статистики после {max_stats_retries} попыток: {e}")
                 else:
                     print("Статистика за день: заданий не найдено")
             
@@ -379,16 +397,33 @@ async def main() -> None:
     else:
         print("Chat ID не сохранён. Отправьте /start боту в Telegram для начала работы.")
     
-    # Запускаем бота
+    # Запускаем бота с обработкой сетевых ошибок
     print("Ожидание команд от пользователя...")
     print("Отправьте /start боту в Telegram для начала работы.")
+    
+    polling_retry_delay = 10  # секунд между попытками переподключения
+    
     try:
-        await dp.start_polling(bot)
-    except KeyboardInterrupt:
-        print("\nОстановка бота...")
+        while True:
+            try:
+                await dp.start_polling(bot, close_bot_session_on_shutdown=False)
+            except KeyboardInterrupt:
+                print("\nОстановка бота...")
+                break
+            except Exception as e:
+                print(f"Ошибка при работе бота (polling): {e}")
+                import traceback
+                traceback.print_exc()
+                print(f"Повторная попытка подключения через {polling_retry_delay} секунд...")
+                await asyncio.sleep(polling_retry_delay)
+                # Не закрываем сессию, чтобы можно было переподключиться
     finally:
+        # Останавливаем фоновые задачи и закрываем сессию при завершении
         background_task_running = False
-        await bot.session.close()
+        try:
+            await bot.session.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":

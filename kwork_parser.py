@@ -1,6 +1,7 @@
 """
 Модуль для парсинга проектов с сайта Kwork.ru
 """
+import asyncio
 import re
 from typing import List, Dict, Optional
 from selectolax.parser import HTMLParser
@@ -24,36 +25,56 @@ DESCRIPTION_SELECTOR = ".description, .project-description, .text"
 async def fetch_projects_page() -> Optional[str]:
     """
     Получает HTML страницы с проектами Kwork через Playwright (выполняет JS).
+    Использует retry логику для повышения устойчивости к сетевых ошибкам.
     
     Returns:
         str: HTML содержимое страницы после выполнения JavaScript или None в случае ошибки
     """
-    try:
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
-            
-            # Устанавливаем заголовки
-            await page.set_extra_http_headers({
-                "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-            })
-            
-            # Переходим на страницу и ждём загрузки контента
-            await page.goto(KWORK_URL, wait_until="networkidle", timeout=30000)
-            
-            # Ждём немного, чтобы JavaScript успел загрузить проекты
-            await page.wait_for_timeout(3000)
-            
-            # Получаем HTML после выполнения JavaScript
-            html = await page.content()
-            await browser.close()
-            
-            return html
-    except Exception as e:
-        print(f"Ошибка при загрузке страницы Kwork через Playwright: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+    max_retries = 3
+    retry_delay = 5  # секунд
+    
+    for attempt in range(max_retries):
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                
+                # Устанавливаем заголовки
+                await page.set_extra_http_headers({
+                    "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+                })
+                
+                # Используем "load" вместо "networkidle" для более быстрой и надежной загрузки
+                # "networkidle" может не наступить при постоянных фоновых запросах
+                try:
+                    await page.goto(KWORK_URL, wait_until="load", timeout=45000)
+                except Exception as goto_error:
+                    # Если "load" не сработал, пробуем "domcontentloaded" как запасной вариант
+                    print(f"Предупреждение: 'load' не сработал, пробую 'domcontentloaded': {goto_error}")
+                    try:
+                        await page.goto(KWORK_URL, wait_until="domcontentloaded", timeout=45000)
+                    except Exception:
+                        raise goto_error
+                
+                # Ждём немного, чтобы JavaScript успел загрузить проекты
+                await page.wait_for_timeout(3000)
+                
+                # Получаем HTML после выполнения JavaScript
+                html = await page.content()
+                await browser.close()
+                
+                return html
+        except Exception as e:
+            print(f"Ошибка при загрузке страницы Kwork через Playwright (попытка {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"Повторная попытка через {retry_delay} секунд...")
+                await asyncio.sleep(retry_delay)
+            else:
+                import traceback
+                traceback.print_exc()
+                return None
+    
+    return None
 
 
 def extract_project_id(url: str) -> Optional[int]:
