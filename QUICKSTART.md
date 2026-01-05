@@ -19,14 +19,17 @@ source venv/bin/activate
 # 4. Установите зависимости
 pip install -r requirements.txt
 
-# 5. Установите браузеры Playwright
+# 5. Установите системные зависимости для Playwright (ОБЯЗАТЕЛЬНО!)
+python -m playwright install-deps chromium
+
+# 6. Установите браузеры Playwright
 python -m playwright install chromium
 
-# 6. Создайте .env файл
+# 7. Создайте .env файл
 cp .env.example .env
 nano .env  # Укажите BOT_TOKEN
 
-# 7. Запустите бота
+# 8. Запустите бота
 # Вариант 1: Используя скрипт (автоматически создаст и активирует venv)
 chmod +x start.sh
 ./start.sh

@@ -56,6 +56,13 @@ fi
 
 # Проверяем установку браузеров Playwright
 if ! python -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); p.chromium.executable_path" 2>/dev/null; then
+    echo "Установка системных зависимостей для Playwright..."
+    python -m playwright install-deps chromium
+    if [ $? -ne 0 ]; then
+        echo "Предупреждение: не удалось установить зависимости автоматически"
+        echo "Попробуйте вручную: sudo apt install libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 и другие"
+    fi
+    
     echo "Установка браузеров Playwright..."
     python -m playwright install chromium
     if [ $? -ne 0 ]; then
