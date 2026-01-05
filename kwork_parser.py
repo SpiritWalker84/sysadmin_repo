@@ -7,9 +7,9 @@ from selectolax.parser import HTMLParser
 from playwright.async_api import async_playwright
 
 
-# URL страницы с проектами (боты и парсинг)
-# c=41 - категория, attr=211 - атрибут (парсинг/скрапинг)
-KWORK_URL = "https://kwork.ru/projects?c=41&attr=211"
+# URL страницы с проектами (общая категория разработки и IT)
+# c=41 - категория "Разработка и IT"
+KWORK_URL = "https://kwork.ru/projects?c=41"
 
 # Селекторы для парсинга (могут потребоваться корректировки при изменении разметки Kwork)
 # Основной контейнер с проектами
@@ -29,9 +29,7 @@ async def fetch_projects_page() -> Optional[str]:
         str: HTML содержимое страницы после выполнения JavaScript или None в случае ошибки
     """
     try:
-        print("Инициализация Playwright...")
         async with async_playwright() as p:
-            print("Запуск браузера Chromium...")
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             
@@ -41,24 +39,14 @@ async def fetch_projects_page() -> Optional[str]:
             })
             
             # Переходим на страницу и ждём загрузки контента
-            print(f"Загрузка страницы: {KWORK_URL}")
             await page.goto(KWORK_URL, wait_until="networkidle", timeout=30000)
             
             # Ждём немного, чтобы JavaScript успел загрузить проекты
-            print("Ожидание загрузки JavaScript...")
             await page.wait_for_timeout(3000)
             
             # Получаем HTML после выполнения JavaScript
-            print("Получение HTML содержимого...")
             html = await page.content()
             await browser.close()
-            print("Браузер закрыт")
-            
-            print(f"Страница загружена через Playwright, размер HTML: {len(html)} символов")
-            if '/projects/' in html.lower():
-                print("В HTML найдены упоминания /projects/")
-            else:
-                print("В HTML всё ещё НЕ найдены упоминания /projects/")
             
             return html
     except Exception as e:
@@ -120,10 +108,7 @@ def parse_projects(html: str) -> List[Dict]:
         project_links = parser.css('a[href*="/projects/"]')
         
         if not project_links:
-            print("Не найдено ссылок на проекты в HTML")
             return []
-        
-        print(f"Найдено {len(project_links)} ссылок на проекты")
         
         # Группируем ссылки по уникальным ID проектов
         seen_ids = set()
@@ -160,7 +145,6 @@ def parse_projects(html: str) -> List[Dict]:
                 'parent': parent or link
             })
         
-        print(f"Уникальных проектов найдено: {len(project_elements_data)}")
         
         for elem_data in project_elements_data:
             try:

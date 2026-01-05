@@ -145,23 +145,13 @@ async def check_new_projects(chat_id: int) -> None:
         
         projects = parse_projects(html)
         if not projects:
-            print("Не найдено проектов на странице")
             return
-        
-        print(f"Всего проектов на странице: {len(projects)}")
         
         # Фильтруем по ключевым словам
         filtered_projects = filter_projects(projects)
-        print(f"Проектов после фильтрации по ключевым словам: {len(filtered_projects)}")
-        
-        # Отладочная информация (только для первых запусков)
-        if len(seen_ids) == 0 and len(filtered_projects) > 0:
-            print(f"\nНайдено подходящих проектов: {len(filtered_projects)}")
         
         # Находим новые проекты
         new_projects = [p for p in filtered_projects if p.get("id") not in seen_ids]
-        print(f"Уже обработанных проектов: {len(seen_ids)}")
-        print(f"Новых проектов: {len(new_projects)}")
         
         if new_projects:
             print(f"Найдено {len(new_projects)} новых проектов")
