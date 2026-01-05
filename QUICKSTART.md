@@ -7,21 +7,26 @@
 git clone https://github.com/SpiritWalker84/sysadmin_repo.git
 cd sysadmin_repo
 
-# 2. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+)
+# 2. Установите python3-venv (ОБЯЗАТЕЛЬНО!)
+sudo apt update
+sudo apt install python3-venv python3-pip
+# Для Python 3.12: sudo apt install python3.12-venv
+
+# 3. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+)
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Установите зависимости
+# 4. Установите зависимости
 pip install -r requirements.txt
 
-# 4. Установите браузеры Playwright
+# 5. Установите браузеры Playwright
 python -m playwright install chromium
 
-# 5. Создайте .env файл
+# 6. Создайте .env файл
 cp .env.example .env
 nano .env  # Укажите BOT_TOKEN
 
-# 6. Запустите бота
+# 7. Запустите бота
 # Вариант 1: Используя скрипт (автоматически создаст и активирует venv)
 chmod +x start.sh
 ./start.sh

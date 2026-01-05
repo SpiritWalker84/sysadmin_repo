@@ -10,6 +10,15 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Проверяем наличие python3-venv
+if ! python3 -m venv --help &> /dev/null; then
+    echo "Ошибка: python3-venv не установлен"
+    echo "Установите: sudo apt install python3-venv"
+    echo ""
+    echo "Для Python 3.12 используйте: sudo apt install python3.12-venv"
+    exit 1
+fi
+
 # Проверяем наличие .env файла
 if [ ! -f .env ]; then
     echo "Ошибка: файл .env не найден"

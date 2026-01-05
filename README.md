@@ -12,7 +12,13 @@ git clone https://github.com/SpiritWalker84/sysadmin_repo.git
 cd sysadmin_repo
 ```
 
-2. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+):
+2. **Установите python3-venv (обязательно!):**
+```bash
+sudo apt update
+sudo apt install python3-venv python3-pip
+```
+
+3. Создайте виртуальное окружение (обязательно для Ubuntu 23.04+):
 ```bash
 python3 -m venv venv
 source venv/bin/activate
