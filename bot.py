@@ -153,6 +153,11 @@ async def check_new_projects(chat_id: int) -> None:
         # Фильтруем по ключевым словам
         filtered_projects = filter_projects(projects)
         
+        # Обновляем статистику найденных проектов
+        if filtered_projects:
+            for _ in filtered_projects:
+                increment_found_count()
+        
         # Находим новые проекты
         new_projects = [p for p in filtered_projects if p.get("id") not in seen_ids]
         
@@ -164,6 +169,9 @@ async def check_new_projects(chat_id: int) -> None:
                 try:
                     message = format_project_message(project)
                     await bot.send_message(chat_id=chat_id, text=message)
+                    
+                    # Обновляем статистику отправленных
+                    increment_sent_count()
                     
                     # Добавляем ID в множество обработанных
                     project_id = project.get("id")
@@ -186,6 +194,49 @@ async def check_new_projects(chat_id: int) -> None:
             
     except Exception as e:
         print(f"Ошибка при проверке проектов: {e}")
+
+
+async def send_daily_stats() -> None:
+    """
+    Отправляет статистику за день в 00:00.
+    """
+    while background_task_running:
+        try:
+            # Вычисляем время до следующей полуночи
+            now = datetime.datetime.now()
+            tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
+            wait_seconds = (tomorrow - now).total_seconds()
+            
+            # Ждём до полуночи
+            await asyncio.sleep(wait_seconds)
+            
+            # Загружаем статистику за вчерашний день
+            stats = load_daily_stats()
+            chat_id = load_chat_id()
+            
+            if chat_id and stats.get('found_count', 0) > 0:
+                found_count = stats.get('found_count', 0)
+                sent_count = stats.get('sent_count', 0)
+                
+                stats_message = (
+                    f"📊 <b>Статистика за день</b>\n\n"
+                    f"Найдено подходящих заданий: <b>{found_count}</b>\n"
+                    f"Отправлено новых заданий: <b>{sent_count}</b>"
+                )
+                
+                try:
+                    await bot.send_message(chat_id=chat_id, text=stats_message)
+                    print(f"Статистика за день отправлена: найдено {found_count}, отправлено {sent_count}")
+                except Exception as e:
+                    print(f"Ошибка при отправке статистики: {e}")
+            
+            # Сбрасываем статистику для нового дня
+            today = datetime.date.today().isoformat()
+            save_daily_stats({'date': today, 'found_count': 0, 'sent_count': 0})
+            
+        except Exception as e:
+            print(f"Ошибка в задаче отправки статистики: {e}")
+            await asyncio.sleep(3600)  # При ошибке ждём час
 
 
 async def background_task() -> None:
@@ -301,7 +352,9 @@ async def main() -> None:
         print(f"Найден сохранённый chat_id: {saved_chat_id}")
         background_task_running = True
         asyncio.create_task(background_task())
+        asyncio.create_task(send_daily_stats())
         print("Фоновая задача запущена")
+        print("Статистика будет отправляться каждый день в 00:00")
     else:
         print("Chat ID не сохранён. Отправьте /start боту в Telegram для начала работы.")
     
