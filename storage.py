@@ -90,3 +90,59 @@ def save_chat_id(chat_id: int) -> None:
     except IOError as e:
         print(f"Ошибка при сохранении chat_id: {e}")
 
+
+# Файл для хранения статистики
+STATS_FILE = "daily_stats.json"
+
+
+def load_daily_stats() -> dict:
+    """
+    Загружает статистику за день.
+    
+    Returns:
+        dict: Словарь со статистикой {'date': 'YYYY-MM-DD', 'found_count': int, 'sent_count': int}
+    """
+    if not os.path.exists(STATS_FILE):
+        return {'date': datetime.date.today().isoformat(), 'found_count': 0, 'sent_count': 0}
+    
+    try:
+        with open(STATS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            # Проверяем, что это статистика за сегодня
+            today = datetime.date.today().isoformat()
+            if data.get('date') != today:
+                # Новый день - сбрасываем статистику
+                return {'date': today, 'found_count': 0, 'sent_count': 0}
+            return data
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Ошибка при загрузке статистики: {e}")
+        return {'date': datetime.date.today().isoformat(), 'found_count': 0, 'sent_count': 0}
+
+
+def save_daily_stats(stats: dict) -> None:
+    """
+    Сохраняет статистику за день.
+    
+    Args:
+        stats: Словарь со статистикой
+    """
+    try:
+        with open(STATS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+    except IOError as e:
+        print(f"Ошибка при сохранении статистики: {e}")
+
+
+def increment_found_count() -> None:
+    """Увеличивает счётчик найденных проектов за день."""
+    stats = load_daily_stats()
+    stats['found_count'] = stats.get('found_count', 0) + 1
+    save_daily_stats(stats)
+
+
+def increment_sent_count() -> None:
+    """Увеличивает счётчик отправленных проектов за день."""
+    stats = load_daily_stats()
+    stats['sent_count'] = stats.get('sent_count', 0) + 1
+    save_daily_stats(stats)
+

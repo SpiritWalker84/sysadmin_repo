@@ -13,7 +13,10 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
 from kwork_parser import fetch_projects_page, parse_projects
-from storage import load_seen_ids, save_seen_ids, load_chat_id, save_chat_id
+from storage import (
+    load_seen_ids, save_seen_ids, load_chat_id, save_chat_id,
+    load_daily_stats, save_daily_stats, increment_found_count, increment_sent_count
+)
 
 
 # Загружаем переменные окружения

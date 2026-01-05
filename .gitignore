@@ -13,6 +13,7 @@ ENV/
 # Данные бота
 seen_projects.json
 chat_id.json
+daily_stats.json
 
 # Конфигурация
 .env
