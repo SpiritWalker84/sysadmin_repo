@@ -3,6 +3,7 @@
 """
 import asyncio
 import os
+import sys
 import datetime
 from typing import List, Set
 from dotenv import load_dotenv
@@ -162,7 +163,9 @@ async def check_new_projects(chat_id: int) -> None:
         new_projects = [p for p in filtered_projects if p.get("id") not in seen_ids]
         
         if new_projects:
-            print(f"Найдено {len(new_projects)} новых проектов")
+            current_time = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{current_time}] Найдено {len(new_projects)} новых проектов")
+            sys.stdout.flush()
             
             # Отправляем каждое новое задание
             for project in new_projects:
@@ -198,13 +201,19 @@ async def check_new_projects(chat_id: int) -> None:
             # Сохраняем обновлённый список seen_ids
             save_seen_ids(seen_ids)
         else:
+            current_time = datetime.datetime.now().strftime("%H:%M:%S")
             if len(filtered_projects) > 0:
-                print(f"Новых проектов не найдено (все {len(filtered_projects)} проектов уже были отправлены ранее)")
+                print(f"[{current_time}] Новых проектов не найдено (все {len(filtered_projects)} проектов уже были отправлены ранее)")
             else:
-                print("Новых проектов не найдено (после фильтрации подходящих проектов нет)")
+                print(f"[{current_time}] Новых проектов не найдено (после фильтрации подходящих проектов нет)")
+            sys.stdout.flush()
             
     except Exception as e:
-        print(f"Ошибка при проверке проектов: {e}")
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        print(f"[{current_time}] Ошибка при проверке проектов: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.stdout.flush()
 
 
 async def send_daily_stats() -> None:
@@ -284,31 +293,49 @@ async def background_task() -> None:
     """
     global background_task_running
     
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"[{current_time}] Фоновая задача запущена")
+    sys.stdout.flush()
+    
     while background_task_running:
         try:
+            current_time = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{current_time}] Начало проверки проектов...")
+            sys.stdout.flush()
+            
             chat_id = load_chat_id()
             if chat_id:
                 await check_new_projects(chat_id)
             else:
-                print("Chat ID не сохранён, пропускаем проверку")
+                print(f"[{current_time}] Chat ID не сохранён, пропускаем проверку")
+                sys.stdout.flush()
             
             # Вычисляем время следующей проверки
             next_check = datetime.datetime.now() + datetime.timedelta(seconds=POLL_INTERVAL)
             next_check_str = next_check.strftime("%H:%M:%S")
-            print(f"Следующая проверка в {next_check_str} (через {POLL_INTERVAL} секунд)")
+            current_time = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{current_time}] Следующая проверка в {next_check_str} (через {POLL_INTERVAL} секунд)")
             print("-" * 50)
+            sys.stdout.flush()  # Принудительно выводим в журнал
             
             # Ждём указанный интервал
             await asyncio.sleep(POLL_INTERVAL)
             
         except Exception as e:
-            print(f"Ошибка в фоновой задаче: {e}")
+            current_time = datetime.datetime.now().strftime("%H:%M:%S")
+            print(f"[{current_time}] Ошибка в фоновой задаче: {e}")
             import traceback
             traceback.print_exc()
+            sys.stdout.flush()
             next_check = datetime.datetime.now() + datetime.timedelta(seconds=60)
             next_check_str = next_check.strftime("%H:%M:%S")
-            print(f"Следующая проверка после ошибки в {next_check_str} (через 60 секунд)")
+            print(f"[{current_time}] Следующая проверка после ошибки в {next_check_str} (через 60 секунд)")
+            sys.stdout.flush()
             await asyncio.sleep(60)  # При ошибке ждём минуту перед повтором
+    
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"[{current_time}] Фоновая задача остановлена")
+    sys.stdout.flush()
 
 
 @dp.message(Command("start"))
@@ -387,25 +414,39 @@ async def main() -> None:
     # Запускаем фоновую задачу, если есть сохранённый chat_id
     global background_task_running
     saved_chat_id = load_chat_id()
+    background_task_created = False
+    
     if saved_chat_id:
         print(f"Найден сохранённый chat_id: {saved_chat_id}")
         background_task_running = True
-        asyncio.create_task(background_task())
-        asyncio.create_task(send_daily_stats())
-        print("Фоновая задача запущена")
+        print("Фоновая задача будет запущена после старта polling")
         print("Статистика будет отправляться каждый день в 00:00")
+        background_task_created = True
+        sys.stdout.flush()
     else:
         print("Chat ID не сохранён. Отправьте /start боту в Telegram для начала работы.")
+        sys.stdout.flush()
     
     # Запускаем бота с обработкой сетевых ошибок
     print("Ожидание команд от пользователя...")
     print("Отправьте /start боту в Telegram для начала работы.")
+    sys.stdout.flush()
     
     polling_retry_delay = 10  # секунд между попытками переподключения
     
     try:
         while True:
             try:
+                # Запускаем фоновые задачи перед start_polling, чтобы они работали параллельно
+                if background_task_created and background_task_running:
+                    asyncio.create_task(background_task())
+                    asyncio.create_task(send_daily_stats())
+                    background_task_created = False  # Запускаем только один раз
+                    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                    print(f"[{current_time}] Фоновые задачи запущены")
+                    sys.stdout.flush()
+                
+                # start_polling использует текущий event loop и будет обрабатывать наши задачи
                 await dp.start_polling(bot, close_bot_session_on_shutdown=False)
             except KeyboardInterrupt:
                 print("\nОстановка бота...")
