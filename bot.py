@@ -151,16 +151,17 @@ async def check_new_projects(chat_id: int) -> None:
         if not projects:
             return
         
-        # Фильтруем по ключевым словам
-        filtered_projects = filter_projects(projects)
+        # Используем все проекты без фильтрации
+        # Фильтрация отключена - получаем все проекты со страницы
+        # filtered_projects = filter_projects(projects)
         
         # Обновляем статистику найденных проектов
-        if filtered_projects:
-            for _ in filtered_projects:
+        if projects:
+            for _ in projects:
                 increment_found_count()
         
         # Находим новые проекты
-        new_projects = [p for p in filtered_projects if p.get("id") not in seen_ids]
+        new_projects = [p for p in projects if p.get("id") not in seen_ids]
         
         if new_projects:
             current_time = datetime.datetime.now().strftime("%H:%M:%S")
@@ -202,10 +203,10 @@ async def check_new_projects(chat_id: int) -> None:
             save_seen_ids(seen_ids)
         else:
             current_time = datetime.datetime.now().strftime("%H:%M:%S")
-            if len(filtered_projects) > 0:
-                print(f"[{current_time}] Новых проектов не найдено (все {len(filtered_projects)} проектов уже были отправлены ранее)")
+            if len(projects) > 0:
+                print(f"[{current_time}] Новых проектов не найдено (все {len(projects)} проектов уже были отправлены ранее)")
             else:
-                print(f"[{current_time}] Новых проектов не найдено (после фильтрации подходящих проектов нет)")
+                print(f"[{current_time}] Новых проектов не найдено")
             sys.stdout.flush()
             
     except Exception as e:
